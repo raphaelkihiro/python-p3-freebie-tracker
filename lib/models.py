@@ -17,7 +17,17 @@ class Company(Base):
     founding_year = Column(Integer())
   
     freebies = relationship("Freebie", back_populates="company")
-    devs = relationship("Dev", secondary="freebies", back_populates="companies")
+
+    def give_freebie(self, dev, item_name, value):
+        return Freebie(item_name=item_name, value=value, dev=dev, company=self)
+    @property
+    def devs(self):
+        return list({freebie.dev for freebie in self.freebies})
+
+    @classmethod
+    def oldest_company(cls, session):
+        return session.query(cls).order_by(cls.founding_year).first()
+    
 
 
     def __repr__(self):
@@ -30,7 +40,18 @@ class Dev(Base):
     name= Column(String())
 
     freebies = relationship("Freebie", back_populates="dev")
-    companies = relationship("Company", secondary="freebies", back_populates="devs")
+    
+    @property
+    def companies(self):
+        return list({freebie.company for freebie in self.freebies})
+
+     
+    def received_one(self, item_name):
+        return any(f.item_name == item_name for f in self.freebies)
+
+    def give_away(self, other_dev, freebie):
+        if freebie.dev == self:
+            freebie.dev = other_dev
 
 
     def __repr__(self):
